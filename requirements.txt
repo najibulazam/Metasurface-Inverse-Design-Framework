@@ -1,0 +1,9 @@
+# Install PyTorch separately using the official CUDA wheel selector.
+# Example:
+# pip uninstall torch torchvision torchaudio -y
+# pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu130
+# python -c "import torch; print('CUDA Available:', torch.cuda.is_available()); print('Device Name:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
+
+numpy>=1.26
+pandas>=2.2
+PyYAML>=6.0

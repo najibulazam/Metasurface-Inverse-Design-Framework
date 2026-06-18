@@ -1,0 +1,37 @@
+project:
+  name: metasurface-project
+  lumerical_version: v241
+  dataset_dir: dataset
+  outputs_dir: outputs
+
+fdtd:
+  min_size_nm: 50
+  max_size_nm: 300
+  step_nm: 10
+  height_nm: 600
+  start_wave_nm: 400
+  end_wave_nm: 800
+  frequency_points: 21
+  mesh_accuracy: 4
+  polarization_angles_deg: [0, 90]
+
+dataset:
+  angle_step_deg: 10
+  max_pairs: 100000
+  out_prefix: dimer
+
+pretrain:
+  epochs: 50
+  batch_size: 256
+  lr: 0.0002
+  embed_dim: 512
+  depth: 8
+  num_heads: 16
+  mask_type: 0
+  loss_type: 1
+
+design:
+  metalens_size: 64
+  focus_um: 75.0
+  unit_x_nm: 400.0
+  unit_y_nm: 400.0

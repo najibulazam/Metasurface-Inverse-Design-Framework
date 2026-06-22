@@ -3,9 +3,8 @@ import argparse
 import logging
 import time
 from contextlib import nullcontext
+import pandas as pd
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
 
 from model.simmim import build_simmim
 from train.dataset_loader import load_pretrain_dataloaders
@@ -51,17 +50,13 @@ def main():
         DATASET_DIR, batch_size=args.batch_size, val_ratio=0.1, mask_type=0, num_workers=4
     )
 
-    # config অনুযায়ী কাস্টম মেটাসার্ফেস ViT মডেল বিল্ড
-    from model.vit_small import VisionTransformerSmall
-    encoder = VisionTransformerSmall(
-        img_size=(21, 6), patch_size=1, in_chans=1, embed_dim=512, depth=8, num_heads=16, num_para=0
-    )
-    from model.simmim import build_simmim
-    model = build_simmim(encoder, loss_type=1)
+    n_wave = len(pd.read_csv(os.path.join(DATASET_DIR, "wavelengths_nm.csv")))
+    model = build_simmim(n_wave, embed_dim=512, depth=8, num_heads=16, loss_type=1)
     model.to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.0002, weight_decay=0.05)
-    scaler = torch.amp.GradScaler("cuda") # Mixed precision for RTX 5070 Ti
+    use_amp = device.type == "cuda"
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp) # Mixed precision for RTX 5070 Ti
 
     logger.info("GPU Training Started...")
     for epoch in range(args.epochs):
@@ -75,7 +70,8 @@ def main():
             
             optimizer.zero_grad(set_to_none=True)
             
-            with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
+            amp_ctx = torch.amp.autocast(device_type="cuda", dtype=torch.float16) if use_amp else nullcontext()
+            with amp_ctx:
                 loss, _ = model(img, mask)
                 
             scaler.scale(loss).backward()
@@ -93,7 +89,8 @@ def main():
             for img, mask in val_loader:
                 img = img.to(device, non_blocking=True).float()
                 mask = mask.to(device, non_blocking=True).float()
-                with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
+                amp_ctx = torch.amp.autocast(device_type="cuda", dtype=torch.float16) if use_amp else nullcontext()
+                with amp_ctx:
                     loss, _ = model(img, mask)
                 val_loss_total += loss.item()
         

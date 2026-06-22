@@ -1,0 +1,39 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Tooling caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# IDE / OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Training outputs and logs
+outputs/
+logs.txt
+*.log
+
+# Generated datasets and design artifacts
+dataset/*.csv
+dataset/*.json
+dataset/*.npy
+
+# Lumerical / FDTD generated files
+*.fsp
+
+# Local verification or scratch files
+*.tmp

@@ -28,7 +28,9 @@ class VisionTransformerForSimMIM(VisionTransformerSmall):
     def forward(self, x, mask):
         _, _, H, W = x.shape
         x = self.patch_embed(x)
-        B, L, _ = x.shape
+        B, C, H_patch, W_patch = x.shape
+        x = x.flatten(2).transpose(1, 2)
+        L = x.shape[1]
 
         mask_token = self.mask_token.expand(B, L, -1)
         w = mask.flatten(1).unsqueeze(-1).type_as(mask_token)
@@ -43,8 +45,8 @@ class VisionTransformerForSimMIM(VisionTransformerSmall):
         x = self.norm(x)
 
         x = x[:, 1:]  # drop cls token
-        B, L, C = x.shape
-        x = x.permute(0, 2, 1).reshape(B, C, H, W)
+        B, _, C = x.shape
+        x = x.permute(0, 2, 1).reshape(B, C, H_patch, W_patch)
         return x
 
 
@@ -83,9 +85,13 @@ class SimMIM(nn.Module):
         return loss, x_rec
 
 
-def build_simmim(n_wave, embed_dim=256, depth=6, num_heads=8, loss_type=1):
-    encoder = VisionTransformerForSimMIM(
-        x_size=n_wave, y_size=6, patch_size=1, in_chans=1, num_para=0,
-        embed_dim=embed_dim, depth=depth, num_heads=num_heads,
-    )
+def build_simmim(encoder_or_n_wave, embed_dim=256, depth=6, num_heads=8, loss_type=1):
+    if isinstance(encoder_or_n_wave, VisionTransformerSmall):
+        encoder = encoder_or_n_wave
+    else:
+        n_wave = encoder_or_n_wave
+        encoder = VisionTransformerForSimMIM(
+            img_size=(n_wave, 6), patch_size=1, in_chans=1, num_para=0,
+            embed_dim=embed_dim, depth=depth, num_heads=num_heads,
+        )
     return SimMIM(encoder, loss_type=loss_type)

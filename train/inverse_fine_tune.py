@@ -10,7 +10,14 @@ class FineTuneDataset(Dataset):
     def __init__(self, dataset_dir):
         jm_df = pd.read_csv(os.path.join(dataset_dir, "JM_dimer.csv"))
         param_df = pd.read_csv(os.path.join(dataset_dir, "param_dimer.csv"))
-        self.jm_data = torch.from_numpy(jm_df.to_numpy()).view(-1, 1, 21, 6).float()
+        self.n_wave = len(pd.read_csv(os.path.join(dataset_dir, "wavelengths_nm.csv")))
+        jm_array = jm_df.to_numpy()
+        if jm_array.shape[1] != self.n_wave * 6:
+            raise ValueError(
+                f"JM_dimer.csv has {jm_array.shape[1]} columns, but expected {self.n_wave * 6} "
+                f"for {self.n_wave} wavelengths x 6 channels."
+            )
+        self.jm_data = torch.from_numpy(jm_array).view(-1, 1, self.n_wave, 6).float()
         self.params = torch.from_numpy(param_df.to_numpy()).float()
 
     def __len__(self):
@@ -28,7 +35,10 @@ def main():
     loader = DataLoader(dataset, batch_size=128, shuffle=True)
 
     # প্রি-ট্রেইনড মডেল লোড এবং ফাইন-টিউনিং হেড যোগ (৬টি প্যারামিটার প্রেডিকশনের জন্য)
-    encoder = VisionTransformerSmall(img_size=(21, 6), patch_size=1, in_chans=1, embed_dim=512, depth=8, num_heads=16, num_para=6)
+    encoder = VisionTransformerSmall(
+        img_size=(dataset.n_wave, 6), patch_size=1, in_chans=1,
+        embed_dim=512, depth=8, num_heads=16, num_para=6
+    )
     
     # প্রি-ট্রেইনড ওজন লোড করা
     pretrained_dict = torch.load(os.path.join(ckpt_dir, "simmim_epoch50.pt"))["model"]
